@@ -1,12 +1,12 @@
 package com.example.atgc_module
 
+import android.R.attr.password
 import android.app.Activity
 import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.FileUtils
 import android.provider.MediaStore
 import android.view.View
 import androidx.annotation.RequiresApi
@@ -14,17 +14,29 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.atgc_module.databinding.ActivityMainBinding
 import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.logging.HttpLoggingInterceptor
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
 
+    var host: String? = null
+    var username: String? = null
+    var password: String? = null
+    var port: Int? = null
+    fun authenticate(view: View?) {
+        // Create an intent for sshActivity
+        //val intent = Intent(this, ::class.kt)
+        intent.putExtra("host", host)
+        intent.putExtra("port", port)
+        intent.putExtra("username", username)
+        intent.putExtra("password", password)
+        startActivity(intent)
+        finish()
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -34,6 +46,12 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(Intent.ACTION_GET_CONTENT)
             intent.type = "*/*"
             startActivityForResult(intent, FILE_PICK_REQUEST_CODE)
+        }
+
+        binding.button4.setOnClickListener{
+            val url = "http://10.209.96.201/file.txt"
+            val destinationPath = this.filesDir.path + "/file.txt"
+            downloadFile(url, destinationPath)
         }
         ActivityCompat.requestPermissions(
             this, arrayOf<String>(
@@ -100,7 +118,7 @@ class MainActivity : AppCompatActivity() {
         }
         val file = File(filePath)
         val request = Request.Builder()
-            .url("http://example.com/upload")
+            .url("/home/sciverse/data/")
             .post(
                 MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
@@ -128,6 +146,36 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val FILE_PICK_REQUEST_CODE = 1
     }
+
+    fun downloadFile(url: String, destinationPath: String) {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        OkHttpClient().newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Handle failure
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val inputStream = response.body?.byteStream()
+                    val outputStream = FileOutputStream(destinationPath)
+
+                    inputStream?.use { input ->
+                        outputStream.use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    // Handle success
+                } else {
+                    // Handle non-successful response
+                }
+            }
+        })
+    }
+
 }
 
 
