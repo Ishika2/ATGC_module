@@ -23,6 +23,8 @@ import java.io.IOException
 import com.example.atgc_module.sshTask
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 
 class MainActivity : AppCompatActivity() {
@@ -64,33 +66,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Get the selected file's URI in onActivityResult method
+    @OptIn(ExperimentalContracts::class)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            val fileUri = data.data // Get the URI of the selected file
-            if (fileUri != null) { // Add null check here
-                val filePath = getFilePathFromUri(this, fileUri) // Get the file path from URI
-                GlobalScope.launch {
-                    sshTask2.uploadFileViaSSH(
-                        host!!,
-                        username!!,
-                        password!!,
-                        filePath!!,
-                        remotePath!!,
-                        command!!
-                    )
-                } // Call uploadFileViaSSH method with file path
-            }else {
-                // Handle null file path case
-                Log.e(TAG, "Failed to get file path from URI: $fileUri")
+        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            // Add contract to ensure data is not null
+            contract {
+                returnsNotNull() implies (data != null)
             }
+            val fileUri = data!!.data // Use !! operator to indicate that data is not null
+            val filePath = getFilePathFromUri(this, fileUri) // Get the file path from URI
+            GlobalScope.launch {
+                sshTask2.uploadFileViaSSH(
+                    host!!,
+                    username!!,
+                    password!!,
+                    filePath!!,
+                    remotePath!!,
+                    command!!
+                )
+            } // Call uploadFileViaSSH method with file path
         }
     }
 
 
-    // Function to get the file path from URI
-    private fun getFilePathFromUri(context: Context, uri: Uri): String? {
+    // Add contract to ensure the returned file path is not null
+    @ExperimentalContracts
+    private fun getFilePathFromUri(context: Context, uri: Uri): String {
+        contract {
+            returnsNotNull() // Ensure that the returned file path is not null
+        }
         var filePath: String? = null
         try {
             val cursor = context.contentResolver.query(uri, null, null, null, null)
@@ -103,8 +109,9 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("Error", "Exception while getting file path from uri: ${e.message}")
         }
-        return filePath
+        return filePath ?: ""
     }
+
 
     companion object {
         private const val FILE_PICK_REQUEST_CODE = 1
