@@ -1,14 +1,16 @@
 package com.example.atgc_module
 
-import android.R.attr.password
 import android.app.Activity
-import android.content.ContentResolver
+import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
+import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -18,40 +20,39 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import com.example.atgc_module.sshTask
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
+    val sshTask2 = sshTask()
 
-    var host: String? = null
-    var username: String? = null
-    var password: String? = null
-    var port: Int? = null
-    fun authenticate(view: View?) {
-        // Create an intent for sshActivity
-        //val intent = Intent(this, ::class.kt)
-        intent.putExtra("host", host)
-        intent.putExtra("port", port)
-        intent.putExtra("username", username)
-        intent.putExtra("password", password)
-        startActivity(intent)
-        finish()
-    }
+    var host: String? = "111.91.225.19"            //out: 111.91.225.19 port: 44   #iit: 10.209.96.204
+    var username: String? = "sciverse"
+    var password: String? = "Access@App"
+    var command: String? = "ls"
+    var port: Int? = 22
+    var remotePath: String? = "sciverse@10.209.96.201:~/sciverse/data"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.button3.setOnClickListener {
-            val intent = Intent(Intent.ACTION_GET_CONTENT)
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             intent.type = "*/*"
             startActivityForResult(intent, FILE_PICK_REQUEST_CODE)
         }
 
-        binding.button4.setOnClickListener{
-            val url = "http://10.209.96.201/file.txt"
-            val destinationPath = this.filesDir.path + "/file.txt"
-            downloadFile(url, destinationPath)
+        binding.login.setOnClickListener{
+            GlobalScope.launch {
+                sshTask2.executeSSHCommand(host!!, username!!, password!!, command!!, port!!)
+                // do something with the result
+            }
+
         }
         ActivityCompat.requestPermissions(
             this, arrayOf<String>(
@@ -62,118 +63,51 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun buttonCreateFile(view: View?) {
-        val intent =
-            Intent(Intent.ACTION_CREATE_DOCUMENT, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
-        //        intent.setType("application/pdf");
-        intent.type = "*/*"
-        this.startActivity(intent)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun buttonOpenFile(view: View?) {
-        val intent = Intent(Intent.ACTION_VIEW, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
-        //        intent.setType("application/pdf");
-        intent.type = "*/*"
-        this.startActivity(intent)
-    }
-
+    // Get the selected file's URI in onActivityResult method
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val uri = data?.data
-            val filePath = uri?.let { uri ->
-                when (uri.scheme) {
-                    ContentResolver.SCHEME_FILE -> uri.path
-                    ContentResolver.SCHEME_CONTENT -> {
-                        val cursor = contentResolver.query(uri, null, null, null, null)
-                        cursor?.use {
-                            if (it.moveToFirst()) {
-                                val pathIndex = it.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
-                                if (pathIndex != -1) {
-                                    it.getString(pathIndex)
-                                } else {
-                                    null
-                                }
-                            } else {
-                                null
-                            }
-                        }
-                    }
-                    else -> null
-                }
-            }
-            if (filePath != null) {
-                uploadFile(filePath)
-            }
-        }
-    }
 
-
-
-    fun uploadFile(filePath: String?) {
-        if (filePath == null) {
-            return
-        }
-        val file = File(filePath)
-        val request = Request.Builder()
-            .url("/home/sciverse/data/")
-            .post(
-                MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                        "file",
-                        file.name,
-                        RequestBody.create("application/octet-stream".toMediaTypeOrNull(), file)
+        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
+            val fileUri = data.data // Get the URI of the selected file
+            if (fileUri != null) { // Add null check here
+                val filePath = getFilePathFromUri(this, fileUri) // Get the file path from URI
+                GlobalScope.launch {
+                    sshTask2.uploadFileViaSSH(
+                        host!!,
+                        username!!,
+                        password!!,
+                        filePath!!,
+                        remotePath!!,
+                        command!!
                     )
-                    .build()
-            )
-            .build()
-
-        OkHttpClient().newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // Handle failure
+                } // Call uploadFileViaSSH method with file path
+            }else {
+                // Handle null file path case
+                Log.e(TAG, "Failed to get file path from URI: $fileUri")
             }
-
-            override fun onResponse(call: Call, response: Response) {
-                // Handle response
-            }
-        })
+        }
     }
 
+
+    // Function to get the file path from URI
+    private fun getFilePathFromUri(context: Context, uri: Uri): String? {
+        var filePath: String? = null
+        try {
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.let {
+                it.moveToFirst()
+                val columnIndex = it.getColumnIndex("_data")
+                filePath = it.getString(columnIndex)
+                it.close()
+            }
+        } catch (e: Exception) {
+            Log.e("Error", "Exception while getting file path from uri: ${e.message}")
+        }
+        return filePath
+    }
 
     companion object {
         private const val FILE_PICK_REQUEST_CODE = 1
-    }
-
-    fun downloadFile(url: String, destinationPath: String) {
-        val request = Request.Builder()
-            .url(url)
-            .build()
-
-        OkHttpClient().newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // Handle failure
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val inputStream = response.body?.byteStream()
-                    val outputStream = FileOutputStream(destinationPath)
-
-                    inputStream?.use { input ->
-                        outputStream.use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-
-                    // Handle success
-                } else {
-                    // Handle non-successful response
-                }
-            }
-        })
     }
 
 }
@@ -273,4 +207,130 @@ class MainActivity : AppCompatActivity() {
                 false
             }
         }
+    }*/
+
+
+    /*fun authenticate(view: View?) {
+        // Create an intent for sshActivity
+        //val intent = Intent(this, ::class.kt)
+        intent.putExtra("host", host)
+        intent.putExtra("port", port)
+        intent.putExtra("username", username)
+        intent.putExtra("password", password)
+        startActivity(intent)
+        finish()
+    }*/
+ */
+
+
+//second attempt
+/*
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun buttonCreateFile(view: View?) {
+        val intent =
+            Intent(Intent.ACTION_CREATE_DOCUMENT, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
+        //        intent.setType("application/pdf");
+        intent.type = ""
+        this.startActivity(intent)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun buttonOpenFile(view: View?) {
+        val intent = Intent(Intent.ACTION_VIEW, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
+        //        intent.setType("application/pdf");
+        intent.type = ""
+        this.startActivity(intent)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val uri = data?.data
+            val filePath = uri?.let { uri ->
+                when (uri.scheme) {
+                    ContentResolver.SCHEME_FILE -> uri.path
+                    ContentResolver.SCHEME_CONTENT -> {
+                        val cursor = contentResolver.query(uri, null, null, null, null)
+                        cursor?.use {
+                            if (it.moveToFirst()) {
+                                val pathIndex = it.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+                                if (pathIndex != -1) {
+                                    it.getString(pathIndex)
+                                } else {
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+                        }
+                    }
+                    else -> null
+                }
+            }
+            if (filePath != null) {
+                uploadFile(filePath)
+            }
+        }
+    }
+
+
+
+    fun uploadFile(filePath: String?) {
+        if (filePath == null) {
+            return
+        }
+        val file = File(filePath)
+        val request = Request.Builder()
+            .url("/home/sciverse/data/")
+            .post(
+                MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart(
+                        "file",
+                        file.name,
+                        RequestBody.create("application/octet-stream".toMediaTypeOrNull(), file)
+                    )
+                    .build()
+            )
+            .build()
+
+        OkHttpClient().newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Handle failure
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                // Handle response
+            }
+        })
+    }*/
+
+/*
+    fun downloadFile(url: String, destinationPath: String) {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        OkHttpClient().newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Handle failure
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val inputStream = response.body?.byteStream()
+                    val outputStream = FileOutputStream(destinationPath)
+
+                    inputStream?.use { input ->
+                        outputStream.use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    // Handle success
+                } else {
+                    // Handle non-successful response
+                }
+            }
+        })
     }*/

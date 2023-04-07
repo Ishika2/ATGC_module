@@ -7,6 +7,10 @@ android {
     namespace 'com.example.atgc_module'
     compileSdk 33
 
+    packagingOptions {
+        resources.excludes.add("META-INF/*")
+    }
+
     defaultConfig {
         applicationId "com.example.atgc_module"
         minSdk 24
@@ -61,19 +65,16 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 
-
+    //ssh
     implementation 'org.apache.mina:mina-core:3.0.0-M2'
-
     implementation 'org.apache.sshd:sshd-core:2.1.0'
-
     implementation 'org.apache.sshd:sshd-putty:2.1.0'
-
     implementation 'org.apache.sshd:sshd-common:2.1.0'
-
     implementation 'org.slf4j:slf4j-api:1.7.30'
-
     implementation 'org.slf4j:slf4j-simple:1.6.4'
 
+    //jsch
+    implementation 'com.jcraft:jsch:0.1.55'
 
 
 }
