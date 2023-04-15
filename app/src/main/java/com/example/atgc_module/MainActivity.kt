@@ -1,30 +1,26 @@
 package com.example.atgc_module
 
 import android.app.Activity
+import android.content.ContentUris
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
-import android.view.View
-import android.widget.Toast
-import androidx.annotation.RequiresApi
+import android.webkit.MimeTypeMap
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.atgc_module.databinding.ActivityMainBinding
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import com.example.atgc_module.sshTask
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
+import okhttp3.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -45,7 +41,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.button3.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            intent.type = "*/*"
+            intent.type = "text/plain"
             startActivityForResult(intent, FILE_PICK_REQUEST_CODE)
         }
 
@@ -66,52 +62,231 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Get the selected file's URI in onActivityResult method
-    @OptIn(ExperimentalContracts::class)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            // Add contract to ensure data is not null
-            contract {
-                returnsNotNull() implies (data != null)
+        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
+            val fileUri = data.data // Get the URI of the selected file
+            if (fileUri != null) { // Add null check here
+                val filePath = getFilePathFromUri(this, fileUri) // Get the file path from URI
+                if (filePath != null) { // Add null check for file path
+                    val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+                        MimeTypeMap.getFileExtensionFromUrl(filePath)
+                    )
+                    if (mimeType?.startsWith("text/") == true) { // Check if MIME type is a text file
+                        GlobalScope.launch {
+                            sshTask2.uploadFileViaSSH(
+                                host!!,
+                                username!!,
+                                password!!,
+                                filePath,
+                                remotePath!!,
+                                command!!
+                            )
+                        } // Call uploadFileViaSSH method with file path
+                    } else {
+                        // Handle non-text file types here
+                        Log.e(TAG, "Selected file is not a text file")
+                    }
+                } else {
+                    // Handle null file path case
+                    Log.e(TAG, "Failed to get file path from URI: $fileUri")
+                }
             }
-            val fileUri = data!!.data // Use !! operator to indicate that data is not null
-            val filePath = getFilePathFromUri(this, fileUri) // Get the file path from URI
-            GlobalScope.launch {
-                sshTask2.uploadFileViaSSH(
-                    host!!,
-                    username!!,
-                    password!!,
-                    filePath!!,
-                    remotePath!!,
-                    command!!
-                )
-            } // Call uploadFileViaSSH method with file path
         }
     }
 
-
-    // Add contract to ensure the returned file path is not null
-    @ExperimentalContracts
-    private fun getFilePathFromUri(context: Context, uri: Uri): String {
-        contract {
-            returnsNotNull() // Ensure that the returned file path is not null
+    fun getFilePathFromUri(context: Context, uri: Uri?): String? {
+        if (uri == null) {
+            return null
         }
         var filePath: String? = null
-        try {
-            val cursor = context.contentResolver.query(uri, null, null, null, null)
-            cursor?.let {
-                it.moveToFirst()
-                val columnIndex = it.getColumnIndex("_data")
-                filePath = it.getString(columnIndex)
-                it.close()
+
+        // For Android API level 19 and above, use the getContentResolver method to get the file path from the URI
+        if (Build.VERSION.SDK_INT >= 19 && DocumentsContract.isDocumentUri(context, uri)) {
+            // Handle ExternalStorageProvider
+            if ("com.android.externalstorage.documents" == uri.authority) {
+                val docId = DocumentsContract.getDocumentId(uri)
+                val split = docId.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                    .toTypedArray()
+                val type = split[0]
+                if ("primary".equals(type, ignoreCase = true)) {
+                    filePath = Environment.getExternalStorageDirectory() + "/" + split[1]
+                }
+            } else if ("com.android.providers.downloads.documents" == uri.authority) {
+                val id = DocumentsContract.getDocumentId(uri).toLong()
+                val contentUri = ContentUris.withAppendedId(
+                    Uri.parse("content://downloads/public_downloads"),
+                    id
+                )
+                filePath = getDataColumn(context, contentUri, null, null)
+            } else if ("com.android.providers.media.documents" == uri.authority) {
+                val docId = DocumentsContract.getDocumentId(uri)
+                val split = docId.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                    .toTypedArray()
+                val type = split[0]
+                var contentUri: Uri? = null
+                if ("image" == type) {
+                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                } else if ("video" == type) {
+                    contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                } else if ("audio" == type) {
+                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                }
+                val selection = "_id=?"
+                val selectionArgs = arrayOf(split[1])
+                filePath = getDataColumn(context, contentUri, selection, selectionArgs)
             }
-        } catch (e: Exception) {
-            Log.e("Error", "Exception while getting file path from uri: ${e.message}")
+        } else {
+            val projection = arrayOf(MediaStore.Images.Media.DATA)
+            val cursor: Cursor? =
+                context.getContentResolver().query(uri, projection, null, null, null)
+            if (cursor != null && cursor.moveToFirst()) {
+                val column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                filePath = cursor.getString(column_index)
+                cursor.close()
+            }
         }
-        return filePath ?: ""
+        return filePath
     }
 
+    private fun getDataColumn(
+        context: Context,
+        uri: Uri?,
+        selection: String?,
+        selectionArgs: Array<String>?
+    ): String? {
+        val projection = arrayOf(MediaStore.Images.Media.DATA)
+        var cursor: Cursor? = null
+        val column = "_data"
+        val projectionForColumn = arrayOf(column)
+        try {
+            cursor = uri?.let {
+                context.getContentResolver()
+                    .query(it, projectionForColumn, selection, selectionArgs, null)
+            }
+            if (cursor != null && cursor.moveToFirst()) {
+                val index = cursor.getColumnIndexOrThrow(column)
+                return cursor.getString(index)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            cursor?.close()
+        }
+        return null
+    }
+
+
+//third attempt filepath
+//    fun getFilePathFromUri(uri: Uri): String? {
+//        var filePath: String? = null
+//        if (DocumentsContract.isDocumentUri(applicationContext, uri)) {
+//            val documentId = DocumentsContract.getDocumentId(uri)
+//            val split = documentId.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+//            val type = split[0]
+//            var contentUri: Uri? = null
+//            contentUri = if ("image" == type) {
+//                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+//            } else if ("video" == type) {
+//                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+//            } else if ("audio" == type) {
+//                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+//            } else {
+//                MediaStore.Files.getContentUri("external")
+//            }
+//            val selection = "_id=?"
+//            val selectionArgs = arrayOf(split[1])
+//            val projection = arrayOf(MediaStore.Files.FileColumns.DATA)
+//            var cursor: Cursor? = null
+//            try {
+//                cursor = contentResolver.query(contentUri, projection, selection, selectionArgs, null)
+//                if (cursor != null && cursor.moveToFirst()) {
+//                    val column_index: Int = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA)
+//                    filePath = cursor.getString(column_index)
+//                }
+//            } catch (e: Exception) {
+//                Log.e("TAG", "Failed to get file path from uri", e)
+//            } finally {
+//                if (cursor != null) cursor.close()
+//            }
+//        }
+//        return filePath
+//    }
+
+
+//second attempt
+//    fun getFilePathFromUri(uri: Uri): String? {
+//        var filePath: String? = null
+//        if (Build.VERSION.SDK_INT >= 19 && DocumentsContract.isDocumentUri(applicationContext, uri)) {
+//            val documentId = DocumentsContract.getDocumentId(uri)
+//            val split = documentId.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+//            val type = split[0]
+//            var contentUri: Uri? = null
+//            contentUri = if ("image" == type) {
+//                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+//            } else if ("video" == type) {
+//                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+//            } else if ("audio" == type) {
+//                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+//            } else {
+//                MediaStore.Files.getContentUri("external")
+//            }
+//            val selection = "_id=?"
+//            val selectionArgs = arrayOf(split[1])
+//            val projection = arrayOf(MediaStore.Files.FileColumns.DATA)
+//            var cursor: Cursor? = null
+//            try {
+//                cursor = contentResolver.query(contentUri, projection, selection, selectionArgs, null)
+//                if (cursor != null && cursor.moveToFirst()) {
+//                    val column_index: Int = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA)
+//                    filePath = cursor.getString(column_index)
+//                }
+//            } catch (e: Exception) {
+//                Log.e("TAG", "Failed to get file path from uri", e)
+//            } finally {
+//                if (cursor != null) cursor.close()
+//            }
+//        } else if ("content".equals(uri.scheme, ignoreCase = true)) {
+//            val projection = arrayOf(MediaStore.Files.FileColumns.DATA)
+//            var cursor: Cursor? = null
+//            try {
+//                cursor = contentResolver.query(uri, projection, null, null, null)
+//                if (cursor != null && cursor.moveToFirst()) {
+//                    val column_index: Int = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA)
+//                    filePath = cursor.getString(column_index)
+//                }
+//            } catch (e: Exception) {
+//                Log.e("TAG", "Failed to get file path from uri", e)
+//            } finally {
+//                if (cursor != null) cursor.close()
+//            }
+//        } else if ("file".equals(uri.scheme, ignoreCase = true)) {
+//            filePath = uri.path
+//        }
+//        return filePath
+//    }
+
+//first attempt for filepath
+//    private fun getFilePathFromUri(context: Context, uri: Uri): String? {
+//        var filePath: String? = null
+//        try {
+//            if (uri.scheme == ContentResolver.SCHEME_CONTENT) {
+//                val cursor = context.contentResolver.query(uri, null, null, null, null)
+//                cursor?.let {
+//                    it.moveToFirst()
+//                    val columnIndex = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+//                    filePath = it.getString(columnIndex)
+//                    it.close()
+//                }
+//            } else if (uri.scheme == ContentResolver.SCHEME_FILE) {
+//                filePath = uri.path
+//            }
+//        } catch (e: Exception) {
+//            Log.e("Error", "Exception while getting file path from uri: ${e.message}")
+//        }
+//        return filePath
+//    }
 
     companion object {
         private const val FILE_PICK_REQUEST_CODE = 1
