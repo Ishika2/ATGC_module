@@ -53,7 +53,7 @@ class sshTask  {
         host: String,
         user: String,
         password: String,
-        filePath: String,
+        filePath: File,
         remotePath: String,
         command: String
     ) {
@@ -88,11 +88,10 @@ class sshTask  {
                 error
             }
 
-            val file = File(filePath)
-            val fis = file.inputStream()
+            val fis = filePath.inputStream()
 
             channel1.cd(remotePath)
-            channel1.put(fis, file.name)
+            channel1.put(fis, filePath.name)
 
             channel1.disconnect()
             channel2.disconnect()
