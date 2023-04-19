@@ -30,14 +30,20 @@ import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
+    var JobId: String = "1234"
     val sshTask2 = sshTask()
 
-    var host: String? = "111.91.225.19"            //out: 111.91.225.19 port: 44   #iit: 10.209.96.204
+    var host: String? = "111.91.225.19"            //out: 111.91.225.19 port: 44   #iit: 10.209.96.201
     var username: String? = "sciverse"
     var password: String? = "Access@App"
-    var command: String? = "ls data"
+    var command: String? = "ls"
+    var filename: String? = JobId
+    var command2: String? = "mkdir -p /home/sciverse/JOBS/$JobId"
+    var command3: String? = "cp /home/sciverse/$filename /home/sciverse/JOBS/$JobId/$filename"
+    var command4: String? = "ln -s /home/sciverse/SCRIPTS/calc_atgc_number_freq.py /home/sciverse/JOBS/$JobId/"
+    var command5: String? = "cd /home/sciverse/JOBS/$JobId/ ; nohup python3 calc_atgc_number_freq.py $filename"
     var port: Int? = 22
-    var remotePath: String? = "sciverse@111.91.225.19:~/data"
+//    var remotePath: String? = "sciverse@111.91.225.19:~/"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +52,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.button3.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            intent.type = "text/plain"
+            intent.type = "*/*"
             startActivityForResult(intent, FILE_PICK_REQUEST_CODE)
         }
 
@@ -90,8 +96,12 @@ class MainActivity : AppCompatActivity() {
                                 username!!,
                                 password!!,
                                 filePath,
-                                remotePath!!,
-                                command!!
+//                                remotePath!!,
+                                command!!,
+                                command2!!,
+                                command3!!,
+                                command4!!,
+                                command5!!
                             )
                         } // Call uploadFileViaSSH method with file path
                     } else {
@@ -117,7 +127,8 @@ class MainActivity : AppCompatActivity() {
             try {
                 inputStream = contentResolver?.openInputStream(contentUri)
                 val inputBytes = inputStream?.readBytes() ?: byteArrayOf()
-                finalFile = File(externalCacheDir, "InspecImg${System.currentTimeMillis()}")
+                //JobId = "12345"
+                finalFile = File(externalCacheDir, "$JobId")  //job sequencing
 
                 if (finalFile.exists()) {
                     finalFile.delete()
