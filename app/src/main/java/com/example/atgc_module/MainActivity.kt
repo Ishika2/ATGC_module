@@ -1,28 +1,22 @@
 package com.example.atgc_module
 
 import android.app.Activity
-import android.content.ContentUris
 import android.content.ContentValues.TAG
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.database.Cursor
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.DocumentsContract
-import android.provider.MediaStore
+import android.text.Editable
 import android.util.Log
-import android.webkit.MimeTypeMap
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.documentfile.provider.DocumentFile
 import com.example.atgc_module.databinding.ActivityMainBinding
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.*
 import java.io.*
 import java.lang.Exception
@@ -30,41 +24,87 @@ import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
-    var JobId: String = "1234"
+    var JobId: String = System.currentTimeMillis().toString() //"1234"
     val sshTask2 = sshTask()
 
-    var host: String? = "111.91.225.19"            //out: 111.91.225.19 port: 44   #iit: 10.209.96.201
+    var host: String? =
+        "111.91.225.19"            //out: 111.91.225.19 port: 22   #iit: 10.209.96.201
     var username: String? = "sciverse"
     var password: String? = "Access@App"
-    var command: String? = "ls"
     var filename: String? = JobId
-    var command2: String? = "mkdir -p /home/sciverse/JOBS/$JobId"
-    var command3: String? = "cp /home/sciverse/$filename /home/sciverse/JOBS/$JobId/$filename"
-    var command4: String? = "ln -s /home/sciverse/SCRIPTS/calc_atgc_number_freq.py /home/sciverse/JOBS/$JobId/"
-    var command5: String? = "cd /home/sciverse/JOBS/$JobId/ ; nohup python3 calc_atgc_number_freq.py $filename"
+    var command: String? = "ls"
+    var command1: String? = "sh /home/sciverse/Main.sh $filename"
     var port: Int? = 22
-//    var remotePath: String? = "sciverse@111.91.225.19:~/"
 
+    val NumA: TextView by lazy { findViewById(R.id.NumA) }
+    val NumT: TextView by lazy { findViewById(R.id.NumT) }
+    val NumG: TextView by lazy { findViewById(R.id.NumG) }
+    val NumC: TextView by lazy { findViewById(R.id.NumC) }
+
+    val FreqA: TextView by lazy { findViewById(R.id.FreqA) }
+    val FreqT: TextView by lazy { findViewById(R.id.FreqT) }
+    val FreqG: TextView by lazy { findViewById(R.id.FreqG) }
+    val FreqC: TextView by lazy { findViewById(R.id.FreqC) }
+
+    val error: TextView by lazy { findViewById(R.id.errorView) }
+
+    private val textATGC: EditText by lazy { findViewById(R.id.editATGC) }
+
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.button3.setOnClickListener {
+        binding.uploadFile.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            intent.type = "*/*"
+            intent.type = "text/plain"
             startActivityForResult(intent, FILE_PICK_REQUEST_CODE)
         }
 
-        binding.login.setOnClickListener{
+        binding.SubmitButtonFile.setOnClickListener {
+            GlobalScope.launch {
+                sshTask2.ResultViaSSH(
+                    host!!, username!!, password!!, command1!!,
+                    NumA,
+                    NumT,
+                    NumG,
+                    NumC,
+                    FreqA,
+                    FreqT,
+                    FreqG,
+                    FreqC,
+                    error
+                )
+                // do something with the result
+            }
+        }
+
+        binding.connect.setOnClickListener {
             GlobalScope.launch {
                 sshTask2.executeSSHCommand(host!!, username!!, password!!, command!!, port!!)
                 // do something with the result
             }
-
+            val toast =
+                Toast.makeText(applicationContext, "Connected to the Server", Toast.LENGTH_SHORT)
+            toast.show()
         }
+
+        binding.SubmitButton.setOnClickListener {
+            TextToFile(textATGC.text.toString())
+            val toast = Toast.makeText(
+                applicationContext,
+                "Response Submitted Successfully",
+                Toast.LENGTH_SHORT
+            )
+            toast.show()
+            val toast2 =
+                Toast.makeText(applicationContext, "Your Job ID is $JobId", Toast.LENGTH_LONG)
+            toast2.show()
+        }
+
         ActivityCompat.requestPermissions(
-            this, arrayOf<String>(
+            this, arrayOf(
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 android.Manifest.permission.READ_EXTERNAL_STORAGE
             ),
@@ -73,7 +113,8 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-     //Get the selected file's URI in onActivityResult method
+    //Get the selected file's URI in onActivityResult method
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -81,35 +122,32 @@ class MainActivity : AppCompatActivity() {
             val fileUri = data.data // Get the URI of the selected file
             if (fileUri != null) { // Add null check here
 
-                    val filePath = getFileFromContentUri(fileUri)
-                    Log.d("filepath", filePath?.path.toString())
+                val filePath = getFileFromContentUri(fileUri)
+                Log.d("filepath", filePath?.path.toString())
 
-                    // Get the file path from URI
-            if (filePath != null) { // Add null check for file path
-//                    val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
-//                        MimeTypeMap.getFileExtensionFromUrl(filePath.toString())
-//                    )
-                    if (/*mimeType?.startsWith("text/") == */true) { // Check if MIME type is a text file
-                        GlobalScope.launch {
-                            sshTask2.uploadFileViaSSH(
-                                host!!,
-                                username!!,
-                                password!!,
-                                filePath,
-//                                remotePath!!,
-                                command!!,
-                                command2!!,
-                                command3!!,
-                                command4!!,
-                                command5!!
-                            )
-                        } // Call uploadFileViaSSH method with file path
-                    } else {
-                        // Handle non-text file types here
-                        Log.e(TAG, "Selected file is not a text file")
+                // Get the file path from URI
+                if (filePath != null) { // Add null check for file path
+                    GlobalScope.launch {
+                        sshTask2.uploadFileViaSSH(
+                            host!!,
+                            username!!,
+                            password!!,
+                            filePath
+                        )
                     }
-                }
-            else {
+                    val toast = Toast.makeText(
+                        applicationContext,
+                        "File Uploaded Successfully",
+                        Toast.LENGTH_SHORT
+                    )
+                    toast.show()
+                    val toast2 = Toast.makeText(
+                        applicationContext,
+                        "Your Job ID is $JobId",
+                        Toast.LENGTH_SHORT
+                    )
+                    toast2.show()
+                } else {
                     // Handle null file path case
                     Log.e(TAG, "Failed to get file path from URI: $fileUri")
                 }
@@ -118,264 +156,65 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Suppress("BlockingMethodInNonBlockingContext")
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun TextToFile(InputText: String) {
+        val file = File(externalCacheDir, JobId)
+        file.writeText(InputText)
+
+        GlobalScope.launch {
+            sshTask2.uploadFileViaSSH(
+                host!!,
+                username!!,
+                password!!,
+                file
+            )
+
+            sshTask2.ResultViaSSH(
+                host!!, username!!, password!!, command1!!,
+                NumA,
+                NumT,
+                NumG,
+                NumC,
+                FreqA,
+                FreqT,
+                FreqG,
+                FreqC,
+                error
+            )
+        }
+    }
+
     private fun getFileFromContentUri(contentUri: Uri): File? {
-            var inputStream: InputStream? = null
-            var outputStream: FileOutputStream? = null
-            var finalFile: File? = null
+        var inputStream: InputStream? = null
+        var outputStream: FileOutputStream? = null
+        var finalFile: File? = null
 
-            try {
-                inputStream = contentResolver?.openInputStream(contentUri)
-                val inputBytes = inputStream?.readBytes() ?: byteArrayOf()
-                //JobId = "12345"
-                finalFile = File(externalCacheDir, "$JobId")  //job sequencing
+        try {
+            inputStream = contentResolver?.openInputStream(contentUri)
+            val inputBytes = inputStream?.readBytes() ?: byteArrayOf()
+            //JobId = "12345"
+            finalFile = File(externalCacheDir, JobId)  //job sequencing
 
-                if (finalFile.exists()) {
-                    finalFile.delete()
-                }
-
-                outputStream = FileOutputStream(finalFile.path)
-                outputStream.write(inputBytes)
-
-            } catch (e: Exception) {
-                Log.d("UploadError", "on creating file: $e")
-            } finally {
-                inputStream?.close()
-                outputStream?.close()
+            if (finalFile.exists()) {
+                finalFile.delete()
             }
 
-            return finalFile
+            outputStream = FileOutputStream(finalFile.path)
+            outputStream.write(inputBytes)
+
+        } catch (e: Exception) {
+            Log.d("UploadError", "on creating file: $e")
+        } finally {
+            inputStream?.close()
+            outputStream?.close()
+        }
+
+        return finalFile
 
     }
 
-
-
-
-        companion object {
+    companion object {
         private const val FILE_PICK_REQUEST_CODE = 1
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//Attempt 1
-/*private fun filePicker() {
-        //.Now Permission Working
-        Toast.makeText(this@MainActivity, "File Picker Call", Toast.LENGTH_SHORT).show()
-        //Let's Pick File
-        val intent = Intent(Intent.ACTION_PICK)
-        intent.type = ""
-        this.startActivity(intent)
-    }
-    fun UploadFile() {
-        val uploadTask = UploadTask()
-        uploadTask.execute(arrayOf<String>(file_path))
-    }
-    class UploadTask : AsyncTask<String?, String?, String>() {
-        override fun onPostExecute(s: String) {
-            super.onPostExecute(s)
-            progressBar.setVisibility(View.GONE)
-            if (s.equals("true", ignoreCase = true)) {
-                Toast.makeText(this, "File uploaded", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Failed Upload", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        override fun doInBackground(vararg p0: String?): String {
-            return if (uploadFile(strings[0])) {
-                "true"
-            } else {
-                "failed"
-            }
-        }
-
-        override fun onPreExecute() {
-            super.onPreExecute()
-            progressBar.setVisibility(View.VISIBLE)
-        }
-
-        private fun uploadFile(path: String): Boolean {
-            val file = File(path)
-            return try {
-                val requestBody: RequestBody = OkHttpClient.Builder().setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                        "files",
-                        file.getName(),
-                        create(MediaType.parse("image/*"), file)
-                    )
-                    .addFormDataPart("some_key", "some_value")
-                    .addFormDataPart("submit", "submit")
-                    .build()
-                val request: Request = OkHttpClient.Builder()
-                    .url("http://192.168.0.2/project/upload.php")
-                    .post(requestBody)
-                    .build()
-                val client = OkHttpClient()
-                client.newCall(request).enqueue(object : Callback() {
-                    fun onFailure(call: Call?, e: IOException) {
-                        e.printStackTrace()
-                    }
-
-                    @Throws(IOException::class)
-                    fun onResponse(call: Call?, response: Response?) {
-                    }
-                })
-                true
-            } catch (e: Exception) {
-                e.printStackTrace()
-                false
-            }
-        }
-    }*/
-
-
-    /*fun authenticate(view: View?) {
-        // Create an intent for sshActivity
-        //val intent = Intent(this, ::class.kt)
-        intent.putExtra("host", host)
-        intent.putExtra("port", port)
-        intent.putExtra("username", username)
-        intent.putExtra("password", password)
-        startActivity(intent)
-        finish()
-    }*/
- */
-
-
-//second attempt
-/*
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun buttonCreateFile(view: View?) {
-        val intent =
-            Intent(Intent.ACTION_CREATE_DOCUMENT, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
-        //        intent.setType("application/pdf");
-        intent.type = ""
-        this.startActivity(intent)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun buttonOpenFile(view: View?) {
-        val intent = Intent(Intent.ACTION_VIEW, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
-        //        intent.setType("application/pdf");
-        intent.type = ""
-        this.startActivity(intent)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val uri = data?.data
-            val filePath = uri?.let { uri ->
-                when (uri.scheme) {
-                    ContentResolver.SCHEME_FILE -> uri.path
-                    ContentResolver.SCHEME_CONTENT -> {
-                        val cursor = contentResolver.query(uri, null, null, null, null)
-                        cursor?.use {
-                            if (it.moveToFirst()) {
-                                val pathIndex = it.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
-                                if (pathIndex != -1) {
-                                    it.getString(pathIndex)
-                                } else {
-                                    null
-                                }
-                            } else {
-                                null
-                            }
-                        }
-                    }
-                    else -> null
-                }
-            }
-            if (filePath != null) {
-                uploadFile(filePath)
-            }
-        }
-    }
-
-
-
-    fun uploadFile(filePath: String?) {
-        if (filePath == null) {
-            return
-        }
-        val file = File(filePath)
-        val request = Request.Builder()
-            .url("/home/sciverse/data/")
-            .post(
-                MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                        "file",
-                        file.name,
-                        RequestBody.create("application/octet-stream".toMediaTypeOrNull(), file)
-                    )
-                    .build()
-            )
-            .build()
-
-        OkHttpClient().newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // Handle failure
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                // Handle response
-            }
-        })
-    }*/
-
-/*
-    fun downloadFile(url: String, destinationPath: String) {
-        val request = Request.Builder()
-            .url(url)
-            .build()
-
-        OkHttpClient().newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // Handle failure
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val inputStream = response.body?.byteStream()
-                    val outputStream = FileOutputStream(destinationPath)
-
-                    inputStream?.use { input ->
-                        outputStream.use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-
-                    // Handle success
-                } else {
-                    // Handle non-successful response
-                }
-            }
-        })
-    }*/

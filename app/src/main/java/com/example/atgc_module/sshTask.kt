@@ -2,27 +2,38 @@ package com.example.atgc_module
 
 import android.os.AsyncTask
 import android.util.Log
+import android.widget.TextView
+import android.widget.Toast
+import com.google.android.material.internal.ContextUtils.getActivity
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.*
 
-class sshTask  {
-    suspend fun executeSSHCommand(host: String, user: String, password: String, command: String, port: Int): String {
+class sshTask {
+    suspend fun executeSSHCommand(
+        host: String,
+        user: String,
+        password: String,
+        command: String,
+        port: Int
+    ): String {
         return withContext(Dispatchers.IO) {
             val jsch = JSch()
             val session: Session = jsch.getSession(user, host, port)
             session.setPassword(password)
             session.setConfig("StrictHostKeyChecking", "no")
             session.setConfig("PreferredAuthentications", "password")
-//            java.util.Properties config = new java.util.Properties()
-//            config.put
 
             session.connect()
 
@@ -53,14 +64,7 @@ class sshTask  {
         host: String,
         user: String,
         password: String,
-        filePath: File,
-//        remotePath: String,
-        command: String,
-        command2: String,
-        command3: String,
-        command4: String,
-        command5: String
-
+        filePath: File
     ) {
         withContext(Dispatchers.IO) {
             val jsch = JSch()
@@ -71,80 +75,91 @@ class sshTask  {
             session.connect()
 
             val channel1 = session.openChannel("sftp") as ChannelSftp
-            val channel2 = session.openChannel("exec") as ChannelExec
-            val channel3 = session.openChannel("exec") as ChannelExec
-            val channel4 = session.openChannel("exec") as ChannelExec
-            val channel5 = session.openChannel("exec") as ChannelExec
-            val channel6 = session.openChannel("exec") as ChannelExec
 
             val fis = filePath.inputStream()
 
             channel1.connect()
             channel1.put(fis, filePath.name)
-            channel2.setCommand(command)
-            channel3.setCommand(command2)
-            channel4.setCommand(command3)
-            channel5.setCommand(command4)
-            channel6.setCommand(command5)
+            channel1.disconnect()
+            session.disconnect()
+        }
+    }
 
-            val inputStream = channel2.inputStream
-            val errorStream = channel2.errStream
+
+    suspend fun ResultViaSSH(
+        host: String,
+        user: String,
+        password: String,
+        command1: String,
+        NumA: TextView,
+        NumT: TextView,
+        NumG: TextView,
+        NumC: TextView,
+        FreqA: TextView,
+        FreqT: TextView,
+        FreqG: TextView,
+        FreqC: TextView,
+        error: TextView
+    ) {
+        withContext(Dispatchers.IO) {
+            val jsch = JSch()
+            val session: Session = jsch.getSession(user, host, 22)
+            session.setPassword(password)
+            session.setConfig("StrictHostKeyChecking", "no")
+            session.setConfig("PreferredAuthentications", "password")
+            session.connect()
+
+            val channel2 = session.openChannel("exec") as ChannelExec
+
+            channel2.setCommand(command1)
+
+            val inputStream2 = channel2.inputStream
+            val errorStream2 = channel2.errStream
             channel2.connect()
 
-//            val inputStream2 = channel3.inputStream
-            val errorStream2 = channel3.errStream
-            channel3.connect()
+            val output2 = inputStream2.bufferedReader().use { it.readText() }
+            //val error2 = errorStream2.bufferedReader().use { it.readText() }
 
-            val errorStream3 = channel4.errStream
-            channel4.connect()
+            Log.d("Output 2 ", output2)
 
-            val errorStream4 = channel5.errStream
-            channel5.connect()
+            val jsonOutput = JSONObject(output2)
 
-            val inputStream5 = channel6.inputStream
-            val errorStream5 = channel6.errStream
-            channel6.connect()
+            val NumJSON = jsonOutput.getJSONObject("Numbers")
 
-            val output = inputStream.bufferedReader().use { it.readText() }
-            val error = errorStream.bufferedReader().use { it.readText() }
+            val FreqJSON = jsonOutput.getJSONObject("Frequency")
 
-//            val output2 = inputStream2.bufferedReader().use { it.readText() }
-            val error2 = errorStream2.bufferedReader().use { it.readText() }
+            withContext(Dispatchers.Main)
+            {
 
-            val output5 = inputStream5.bufferedReader().use { it.readText() }
+                val others = NumJSON.getInt("others")
 
-            Log.d("Output", output)
+                if (others > 0) {
+                    error.text = "Invalid DNA Sequence"
+                    NumA.text = "A"
+                    NumT.text = "T"
+                    NumG.text = "G"
+                    NumC.text = "C"
 
-            Log.d("Output 5", output5)
+                    FreqA.text = "A"
+                    FreqT.text = "T"
+                    FreqG.text = "G"
+                    FreqC.text = "C"
+                } else {
+                    error.text = ""
+                    NumA.text = NumJSON.getInt("A").toString()
+                    NumT.text = NumJSON.getInt("T").toString()
+                    NumG.text = NumJSON.getInt("G").toString()
+                    NumC.text = NumJSON.getInt("C").toString()
 
-//            Log.d("Output", output2)
+                    FreqA.text = FreqJSON.getDouble("A").toString()
+                    FreqT.text = FreqJSON.getDouble("T").toString()
+                    FreqG.text = FreqJSON.getDouble("G").toString()
+                    FreqC.text = FreqJSON.getDouble("C").toString()
 
+                }
 
-
-            if (output.isNotEmpty()) {
-                output
-            } else {
-                error
             }
-
-//            if (output2.isNotEmpty()) {
-//                output2
-//            } else {
-//                error2
-//            }
-
-//            val fis = filePath.inputStream()
-
-//            channel1.cd(remotePath)
-//            channel1.put(fis, filePath.name)
-
-            channel1.disconnect()
             channel2.disconnect()
-            channel3.disconnect()
-            channel4.disconnect()
-            channel5.disconnect()
-            channel6.disconnect()
-
             session.disconnect()
         }
     }
