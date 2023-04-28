@@ -20,7 +20,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.*
 
-class sshTask {
+open class sshTask {
     suspend fun executeSSHCommand(
         host: String,
         user: String,
@@ -86,81 +86,81 @@ class sshTask {
     }
 
 
-    suspend fun ResultViaSSH(
-        host: String,
-        user: String,
-        password: String,
-        command1: String,
-        NumA: TextView,
-        NumT: TextView,
-        NumG: TextView,
-        NumC: TextView,
-        FreqA: TextView,
-        FreqT: TextView,
-        FreqG: TextView,
-        FreqC: TextView,
-        error: TextView
-    ) {
-        withContext(Dispatchers.IO) {
-            val jsch = JSch()
-            val session: Session = jsch.getSession(user, host, 22)
-            session.setPassword(password)
-            session.setConfig("StrictHostKeyChecking", "no")
-            session.setConfig("PreferredAuthentications", "password")
-            session.connect()
-
-            val channel2 = session.openChannel("exec") as ChannelExec
-
-            channel2.setCommand(command1)
-
-            val inputStream2 = channel2.inputStream
-            val errorStream2 = channel2.errStream
-            channel2.connect()
-
-            val output2 = inputStream2.bufferedReader().use { it.readText() }
-            //val error2 = errorStream2.bufferedReader().use { it.readText() }
-
-            Log.d("Output 2 ", output2)
-
-            val jsonOutput = JSONObject(output2)
-
-            val NumJSON = jsonOutput.getJSONObject("Numbers")
-
-            val FreqJSON = jsonOutput.getJSONObject("Frequency")
-
-            withContext(Dispatchers.Main)
-            {
-
-                val others = NumJSON.getInt("others")
-
-                if (others > 0) {
-                    error.text = "Invalid DNA Sequence"
-                    NumA.text = "A"
-                    NumT.text = "T"
-                    NumG.text = "G"
-                    NumC.text = "C"
-
-                    FreqA.text = "A"
-                    FreqT.text = "T"
-                    FreqG.text = "G"
-                    FreqC.text = "C"
-                } else {
-                    error.text = ""
-                    NumA.text = NumJSON.getInt("A").toString()
-                    NumT.text = NumJSON.getInt("T").toString()
-                    NumG.text = NumJSON.getInt("G").toString()
-                    NumC.text = NumJSON.getInt("C").toString()
-
-                    FreqA.text = FreqJSON.getDouble("A").toString()
-                    FreqT.text = FreqJSON.getDouble("T").toString()
-                    FreqG.text = FreqJSON.getDouble("G").toString()
-                    FreqC.text = FreqJSON.getDouble("C").toString()
-
-                }
-
-            }
-            channel2.disconnect()
-            session.disconnect()
-        }
-    }
+//    suspend fun ResultViaSSH(
+//        host: String,
+//        user: String,
+//        password: String,
+//        command1: String,
+//        NumA: TextView,
+//        NumT: TextView,
+//        NumG: TextView,
+//        NumC: TextView,
+//        FreqA: TextView,
+//        FreqT: TextView,
+//        FreqG: TextView,
+//        FreqC: TextView,
+//        error: TextView
+//    ) {
+//        withContext(Dispatchers.IO) {
+//            val jsch = JSch()
+//            val session: Session = jsch.getSession(user, host, 22)
+//            session.setPassword(password)
+//            session.setConfig("StrictHostKeyChecking", "no")
+//            session.setConfig("PreferredAuthentications", "password")
+//            session.connect()
+//
+//            val channel2 = session.openChannel("exec") as ChannelExec
+//
+//            channel2.setCommand(command1)
+//
+//            val inputStream2 = channel2.inputStream
+//            val errorStream2 = channel2.errStream
+//            channel2.connect()
+//
+//            val output2 = inputStream2.bufferedReader().use { it.readText() }
+//            //val error2 = errorStream2.bufferedReader().use { it.readText() }
+//
+//            Log.d("Output 2 ", output2)
+//
+//            val jsonOutput = JSONObject(output2)
+//
+//            val NumJSON = jsonOutput.getJSONObject("Numbers")
+//
+//            val FreqJSON = jsonOutput.getJSONObject("Frequency")
+//
+//            withContext(Dispatchers.Main)
+//            {
+//
+//                val others = NumJSON.getInt("others")
+//
+//                if (others > 0) {
+//                    error.text = "Invalid DNA Sequence"
+//                    NumA.text = "A"
+//                    NumT.text = "T"
+//                    NumG.text = "G"
+//                    NumC.text = "C"
+//
+//                    FreqA.text = "A"
+//                    FreqT.text = "T"
+//                    FreqG.text = "G"
+//                    FreqC.text = "C"
+//                } else {
+//                    error.text = ""
+//                    NumA.text = NumJSON.getInt("A").toString()
+//                    NumT.text = NumJSON.getInt("T").toString()
+//                    NumG.text = NumJSON.getInt("G").toString()
+//                    NumC.text = NumJSON.getInt("C").toString()
+//
+//                    FreqA.text = FreqJSON.getDouble("A").toString()
+//                    FreqT.text = FreqJSON.getDouble("T").toString()
+//                    FreqG.text = FreqJSON.getDouble("G").toString()
+//                    FreqC.text = FreqJSON.getDouble("C").toString()
+//
+//                }
+//
+//            }
+//            channel2.disconnect()
+//            session.disconnect()
+//        }
+//    }
 }

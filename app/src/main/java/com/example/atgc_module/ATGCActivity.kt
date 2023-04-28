@@ -6,25 +6,31 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.text.Editable
 import android.util.Log
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.example.atgc_module.databinding.ActivityMainBinding
+import com.example.atgc_module.databinding.ActivityAtgcBinding
+import com.jcraft.jsch.ChannelExec
+import com.jcraft.jsch.JSch
+import com.jcraft.jsch.Session
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.*
+import org.json.JSONObject
 import java.io.*
 import java.lang.Exception
 
 
-class MainActivity : AppCompatActivity() {
-    lateinit var binding: ActivityMainBinding
+class ATGCActivity : AppCompatActivity() {
+    lateinit var binding: ActivityAtgcBinding
     var JobId: String = System.currentTimeMillis().toString() //"1234"
+    val JobName: String = "DNA"
     val sshTask2 = sshTask()
 
     var host: String? =
@@ -33,7 +39,7 @@ class MainActivity : AppCompatActivity() {
     var password: String? = "Access@App"
     var filename: String? = JobId
     var command: String? = "ls"
-    var command1: String? = "sh /home/sciverse/Main.sh $filename"
+    var command1: String? = "sh /home/sciverse/Main.sh $filename $JobName"
     var port: Int? = 22
 
     val NumA: TextView by lazy { findViewById(R.id.NumA) }
@@ -53,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
+        binding = ActivityAtgcBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.uploadFile.setOnClickListener {
@@ -64,7 +70,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.SubmitButtonFile.setOnClickListener {
             GlobalScope.launch {
-                sshTask2.ResultViaSSH(
+                ResultViaSSH(
                     host!!, username!!, password!!, command1!!,
                     NumA,
                     NumT,
@@ -80,15 +86,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.connect.setOnClickListener {
-            GlobalScope.launch {
-                sshTask2.executeSSHCommand(host!!, username!!, password!!, command!!, port!!)
-                // do something with the result
-            }
-            val toast =
-                Toast.makeText(applicationContext, "Connected to the Server", Toast.LENGTH_SHORT)
-            toast.show()
-        }
+//        binding.connect.setOnClickListener {
+//            GlobalScope.launch {
+//                sshTask2.executeSSHCommand(host!!, username!!, password!!, command!!, port!!)
+//                // do something with the result
+//            }
+//            val toast =
+//                Toast.makeText(applicationContext, "Connected to the Server", Toast.LENGTH_SHORT)
+//            toast.show()
+//        }
 
         binding.SubmitButton.setOnClickListener {
             TextToFile(textATGC.text.toString())
@@ -169,7 +175,7 @@ class MainActivity : AppCompatActivity() {
                 file
             )
 
-            sshTask2.ResultViaSSH(
+            ResultViaSSH(
                 host!!, username!!, password!!, command1!!,
                 NumA,
                 NumT,
@@ -181,6 +187,84 @@ class MainActivity : AppCompatActivity() {
                 FreqC,
                 error
             )
+        }
+    }
+
+    suspend fun ResultViaSSH(
+        host: String,
+        user: String,
+        password: String,
+        command1: String,
+        NumA: TextView,
+        NumT: TextView,
+        NumG: TextView,
+        NumC: TextView,
+        FreqA: TextView,
+        FreqT: TextView,
+        FreqG: TextView,
+        FreqC: TextView,
+        error: TextView
+    ) {
+        withContext(Dispatchers.IO) {
+            val jsch = JSch()
+            val session: Session = jsch.getSession(user, host, 22)
+            session.setPassword(password)
+            session.setConfig("StrictHostKeyChecking", "no")
+            session.setConfig("PreferredAuthentications", "password")
+            session.connect()
+
+            val channel2 = session.openChannel("exec") as ChannelExec
+
+            channel2.setCommand(command1)
+
+            val inputStream2 = channel2.inputStream
+            val errorStream2 = channel2.errStream
+            channel2.connect()
+
+            val output2 = inputStream2.bufferedReader().use { it.readText() }
+            //val error2 = errorStream2.bufferedReader().use { it.readText() }
+
+            Log.d("Output 2 ", output2)
+
+            val jsonOutput = JSONObject(output2)
+
+            val NumJSON = jsonOutput.getJSONObject("Numbers")
+
+            val FreqJSON = jsonOutput.getJSONObject("Frequency")
+
+            withContext(Dispatchers.Main)
+            {
+
+                val others = NumJSON.getInt("others")
+
+                if (others > 0) {
+                    error.text = "Invalid DNA Sequence"
+                    NumA.text = "A"
+                    NumT.text = "T"
+                    NumG.text = "G"
+                    NumC.text = "C"
+
+                    FreqA.text = "A"
+                    FreqT.text = "T"
+                    FreqG.text = "G"
+                    FreqC.text = "C"
+                } else {
+                    error.text = ""
+                    NumA.text = NumJSON.getInt("A").toString()
+                    NumT.text = NumJSON.getInt("T").toString()
+                    NumG.text = NumJSON.getInt("G").toString()
+                    NumC.text = NumJSON.getInt("C").toString()
+
+                    FreqA.text = FreqJSON.getDouble("A").toString()
+                    FreqT.text = FreqJSON.getDouble("T").toString()
+                    FreqG.text = FreqJSON.getDouble("G").toString()
+                    FreqC.text = FreqJSON.getDouble("C").toString()
+
+                }
+
+            }
+            channel2.disconnect()
+            session.disconnect()
         }
     }
 
