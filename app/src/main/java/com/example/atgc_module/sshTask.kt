@@ -1,6 +1,8 @@
 package com.example.atgc_module
 
+import android.content.ContentResolver
 import android.os.AsyncTask
+import android.os.Environment
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
@@ -15,9 +17,13 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.util.*
 
 open class sshTask {
@@ -85,82 +91,134 @@ open class sshTask {
         }
     }
 
+    suspend fun DownloadFileViaSSH(
+        host: String,
+        user: String,
+        password: String,
+        fileName: String
+//        filePath: File
+    ) {
+        withContext(Dispatchers.IO) {
+            val jsch = JSch()
+            val session: Session = jsch.getSession(user, host, 22)
+            session.setPassword(password)
+            session.setConfig("StrictHostKeyChecking", "no")
+            session.setConfig("PreferredAuthentications", "password")
+            session.connect()
 
-//    suspend fun ResultViaSSH(
-//        host: String,
-//        user: String,
-//        password: String,
-//        command1: String,
-//        NumA: TextView,
-//        NumT: TextView,
-//        NumG: TextView,
-//        NumC: TextView,
-//        FreqA: TextView,
-//        FreqT: TextView,
-//        FreqG: TextView,
-//        FreqC: TextView,
-//        error: TextView
-//    ) {
-//        withContext(Dispatchers.IO) {
-//            val jsch = JSch()
-//            val session: Session = jsch.getSession(user, host, 22)
-//            session.setPassword(password)
-//            session.setConfig("StrictHostKeyChecking", "no")
-//            session.setConfig("PreferredAuthentications", "password")
-//            session.connect()
+//            val channel1 = session.openChannel("exec") as ChannelExec
+//            channel1.setCommand(command)
+
+//            val inputStream2 = channel1.inputStream
+//            val outputStream2 = channel1.outputStream
+//            val errorStream2 = channel1.errStream
+//            channel1.connect()
+
+            val channel2 = session.openChannel("sftp") as ChannelSftp
+            channel2.connect()
+
+            val inputStream: InputStream? = null
+            var outputStream: FileOutputStream? = null
+
+            try {
+
+                val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),fileName)
+                outputStream = FileOutputStream(outputFile)
+
+                val inputFile = channel2.get("/home/sciverse/$fileName", outputStream)
+
+            }
+            catch (e: Exception) {
+                Log.d("DownloadFile","Error downloading file: $e")
+            }
+            finally {
+                inputStream?.close()
+                outputStream?.close()
+            }
+
+//            channel1.disconnect()
+            channel2.disconnect()
+            session.disconnect()
+
+
+        }
+    }
+
+    suspend fun ExecuteCommand(
+        host: String,
+        user: String,
+        password: String,
+        command: String
+    ) {
+        withContext(Dispatchers.IO) {
+            val jsch = JSch()
+            val session: Session = jsch.getSession(user, host, 22)
+            session.setPassword(password)
+            session.setConfig("StrictHostKeyChecking", "no")
+            session.setConfig("PreferredAuthentications", "password")
+            session.connect()
+
+
+            val channel1 = session.openChannel("exec") as ChannelExec
+            channel1.setCommand(command)
+
+            channel1.connect()
+
+//            val output = channel1.inputStream
 //
-//            val channel2 = session.openChannel("exec") as ChannelExec
-//
-//            channel2.setCommand(command1)
-//
-//            val inputStream2 = channel2.inputStream
-//            val errorStream2 = channel2.errStream
-//            channel2.connect()
-//
-//            val output2 = inputStream2.bufferedReader().use { it.readText() }
-//            //val error2 = errorStream2.bufferedReader().use { it.readText() }
-//
-//            Log.d("Output 2 ", output2)
-//
-//            val jsonOutput = JSONObject(output2)
-//
-//            val NumJSON = jsonOutput.getJSONObject("Numbers")
-//
-//            val FreqJSON = jsonOutput.getJSONObject("Frequency")
-//
-//            withContext(Dispatchers.Main)
-//            {
-//
-//                val others = NumJSON.getInt("others")
-//
-//                if (others > 0) {
-//                    error.text = "Invalid DNA Sequence"
-//                    NumA.text = "A"
-//                    NumT.text = "T"
-//                    NumG.text = "G"
-//                    NumC.text = "C"
-//
-//                    FreqA.text = "A"
-//                    FreqT.text = "T"
-//                    FreqG.text = "G"
-//                    FreqC.text = "C"
-//                } else {
-//                    error.text = ""
-//                    NumA.text = NumJSON.getInt("A").toString()
-//                    NumT.text = NumJSON.getInt("T").toString()
-//                    NumG.text = NumJSON.getInt("G").toString()
-//                    NumC.text = NumJSON.getInt("C").toString()
-//
-//                    FreqA.text = FreqJSON.getDouble("A").toString()
-//                    FreqT.text = FreqJSON.getDouble("T").toString()
-//                    FreqG.text = FreqJSON.getDouble("G").toString()
-//                    FreqC.text = FreqJSON.getDouble("C").toString()
-//
-//                }
-//
-//            }
-//            channel2.disconnect()
-//            session.disconnect()
-//        }
-//    }
+//            Log.d("Output ls", output.bufferedReader().use { it.readText() })
+
+            channel1.disconnect()
+            session.disconnect()
+        }
+    }
+
 }
+
+
+
+//            var output: OutputStream? = null
+//            var input: FileInputStream? = null
+//            var finalFile: File? = null
+//
+//            finalFile = File(Environment.getExternalStorageDirectory().path)
+//
+//            input = FileInputStream(finalFile.path)
+//            input.write(fileContents)
+
+//            val file: String = fileContents
+
+//            val file = File( Environment.getExternalStorageDirectory().path, "/home/sciverse/Output_Seq.txt".substringAfterLast("/"))
+
+//            val outputStream = channel1.inputStream
+
+//            val fos = file.path
+
+
+//            channel1.get("/home/sciverse/JOB/$jobid/Output_Seq.txt",fos.toString())
+
+//downloadFileFromServer("/home/sciverse/JOB/$jobid/Output_Seq.txt",Environment.getExternalStorageDirectory().path)
+
+//channel1.put(fis, filePath.name)
+
+
+
+//                val fileContents = inputFile.bufferedReader().use { it.readText() }
+
+//                inputStream = ByteArrayInputStream(inputFile.readBytes())
+//                val bufferSize = 1024
+//                val buffer = ByteArray(bufferSize)
+//                val inputBytes = inputStream.readBytes()
+
+//                val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"Output_Seq.txt")
+
+//                outputStream = FileOutputStream(outputFile)
+//                var bytesRead = inputStream.read(buffer)
+//
+//                while(bytesRead != -1)
+//                {
+//                    outputStream.write(buffer,0,bytesRead)
+//                    bytesRead = inputStream.read(buffer)
+//                }
+
+//                outputStream.write(inputBytes)

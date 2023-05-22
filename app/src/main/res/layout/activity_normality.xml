@@ -7,7 +7,7 @@
     tools:context=".NormalityActivity">
 
     <TextView
-        android:id="@+id/textNormality"
+        android:id="@+id/textMolarity"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Normality Calculator"
@@ -26,7 +26,7 @@
         android:textColor="@color/black"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginStart="30dp"
-        app:layout_constraintTop_toBottomOf="@id/textNormality"
+        app:layout_constraintTop_toBottomOf="@id/textMolarity"
         android:layout_marginTop="40dp"
         android:textSize="20sp"/>
 
@@ -43,7 +43,7 @@
         android:textSize="20sp"/>
 
     <TextView
-        android:id="@+id/textMolecularWt"
+        android:id="@+id/textVol2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Molecular Weight:"
@@ -62,7 +62,7 @@
         android:textColor="@color/black"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginStart="30dp"
-        app:layout_constraintTop_toBottomOf="@id/textMolecularWt"
+        app:layout_constraintTop_toBottomOf="@id/textVol2"
         android:layout_marginTop="20dp"
         android:textSize="20sp"/>
 
@@ -90,7 +90,7 @@
         android:layout_marginTop="50dp"/>
 
     <TextView
-        android:id="@+id/textResultN"
+        android:id="@+id/textResultM2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="N"
@@ -121,20 +121,20 @@
         android:layout_marginStart="10dp"
         android:ems="10"
         android:hint="in ml"
-        android:inputType="text"
+        android:inputType="numberDecimal"
         app:layout_constraintStart_toEndOf="@id/textVolume"
-        app:layout_constraintTop_toBottomOf="@id/textNormality"
+        app:layout_constraintTop_toBottomOf="@id/textMolarity"
         android:layout_marginTop="30dp" />
 
     <EditText
-        android:id="@+id/editMolecularWt"
+        android:id="@+id/editVol2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
         android:ems="8"
         android:hint="in gm/mole"
-        android:inputType="text"
-        app:layout_constraintStart_toEndOf="@id/textMolecularWt"
+        android:inputType="numberDecimal"
+        app:layout_constraintStart_toEndOf="@id/textVol2"
         app:layout_constraintTop_toBottomOf="@id/editMoles"
         android:layout_marginTop="5dp" />
 
@@ -145,7 +145,7 @@
         android:layout_marginStart="10dp"
         android:ems="8"
         android:hint="in gm"
-        android:inputType="text"
+        android:inputType="numberDecimal"
         app:layout_constraintStart_toEndOf="@id/textMoles"
         app:layout_constraintTop_toBottomOf="@id/editVolume"
         android:layout_marginTop="5dp" />
@@ -157,9 +157,9 @@
         android:layout_marginStart="10dp"
         android:ems="8"
         android:hint="in numbers"
-        android:inputType="text"
+        android:inputType="numberSigned"
         app:layout_constraintStart_toEndOf="@id/textNfactor"
-        app:layout_constraintTop_toBottomOf="@id/editMolecularWt"
+        app:layout_constraintTop_toBottomOf="@id/editVol2"
         android:layout_marginTop="5dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,18 +1,18 @@
 package com.example.atgc_module
 
 import android.app.Activity
-import android.content.ContentValues.TAG
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.example.atgc_module.databinding.ActivityAtgcBinding
+import com.example.atgc_module.databinding.ActivityGcPercentBinding
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
@@ -21,16 +21,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.*
 import org.json.JSONObject
-import java.io.*
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 import java.lang.Exception
 
-
-class ATGCActivity : AppCompatActivity() {
-    lateinit var binding: ActivityAtgcBinding
+class GC_percentActivity : AppCompatActivity() {
+    lateinit var binding: ActivityGcPercentBinding
     var JobId: String = System.currentTimeMillis().toString() //"1234"
-    val JobName: String = "DNA"
+    val JobName: String = "GC_percent"
     val sshTask2 = sshTask()
 
     var host: String? =
@@ -42,24 +42,16 @@ class ATGCActivity : AppCompatActivity() {
     var command1: String? = "sh /home/sciverse/Main.sh $filename $JobName"
     var port: Int? = 22
 
-    val NumA: TextView by lazy { findViewById(R.id.NumA) }
-    val NumT: TextView by lazy { findViewById(R.id.NumT) }
-    val NumG: TextView by lazy { findViewById(R.id.NumG) }
-    val NumC: TextView by lazy { findViewById(R.id.NumC) }
-
-    val FreqA: TextView by lazy { findViewById(R.id.FreqA) }
-    val FreqT: TextView by lazy { findViewById(R.id.FreqT) }
-    val FreqG: TextView by lazy { findViewById(R.id.FreqG) }
-    val FreqC: TextView by lazy { findViewById(R.id.FreqC) }
-
-    val error: TextView by lazy { findViewById(R.id.errorView) }
+    val Result: TextView by lazy { findViewById(R.id.result) }
 
     private val textATGC: EditText by lazy { findViewById(R.id.editATGC) }
+
+    val error: TextView by lazy { findViewById(R.id.errorView) }
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityAtgcBinding.inflate(layoutInflater)
+        binding = ActivityGcPercentBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.uploadFile.setOnClickListener {
@@ -72,14 +64,7 @@ class ATGCActivity : AppCompatActivity() {
             GlobalScope.launch {
                 ResultViaSSH(
                     host!!, username!!, password!!, command1!!,
-                    NumA,
-                    NumT,
-                    NumG,
-                    NumC,
-                    FreqA,
-                    FreqT,
-                    FreqG,
-                    FreqC,
+                    Result,
                     error
                 )
                 // do something with the result
@@ -145,7 +130,7 @@ class ATGCActivity : AppCompatActivity() {
                     toast2.show()
                 } else {
                     // Handle null file path case
-                    Log.e(TAG, "Failed to get file path from URI: $fileUri")
+                    Log.e(ContentValues.TAG, "Failed to get file path from URI: $fileUri")
                 }
             }
 
@@ -167,14 +152,7 @@ class ATGCActivity : AppCompatActivity() {
 
             ResultViaSSH(
                 host!!, username!!, password!!, command1!!,
-                NumA,
-                NumT,
-                NumG,
-                NumC,
-                FreqA,
-                FreqT,
-                FreqG,
-                FreqC,
+                Result,
                 error
             )
         }
@@ -185,14 +163,7 @@ class ATGCActivity : AppCompatActivity() {
         user: String,
         password: String,
         command1: String,
-        NumA: TextView,
-        NumT: TextView,
-        NumG: TextView,
-        NumC: TextView,
-        FreqA: TextView,
-        FreqT: TextView,
-        FreqG: TextView,
-        FreqC: TextView,
+        Result: TextView,
         error: TextView
     ) {
         withContext(Dispatchers.IO) {
@@ -218,40 +189,22 @@ class ATGCActivity : AppCompatActivity() {
 
             val jsonOutput = JSONObject(output2)
 
-            val NumJSON = jsonOutput.getJSONObject("Numbers")
+            val ResJSON = jsonOutput.getJSONObject("0")
 
-            val FreqJSON = jsonOutput.getJSONObject("Frequency")
+            //val FreqJSON = jsonOutput.getJSONObject("Frequency")
 
             withContext(Dispatchers.Main)
             {
 
-                val others = NumJSON.getInt("others")
+                val others = ResJSON.getInt("others")
 
                 if (others > 0) {
                     error.text = "Invalid DNA Sequence"
-                    NumA.text = "A"
-                    NumT.text = "T"
-                    NumG.text = "G"
-                    NumC.text = "C"
-
-                    FreqA.text = "A"
-                    FreqT.text = "T"
-                    FreqG.text = "G"
-                    FreqC.text = "C"
+                    Result.text = "0"
                 } else {
                     error.text = ""
-                    NumA.text = NumJSON.getInt("A").toString()
-                    NumT.text = NumJSON.getInt("T").toString()
-                    NumG.text = NumJSON.getInt("G").toString()
-                    NumC.text = NumJSON.getInt("C").toString()
-
-                    FreqA.text = FreqJSON.getDouble("A").toString()
-                    FreqT.text = FreqJSON.getDouble("T").toString()
-                    FreqG.text = FreqJSON.getDouble("G").toString()
-                    FreqC.text = FreqJSON.getDouble("C").toString()
-
+                    Result.text = ResJSON.getDouble("GC_percent").toString()
                 }
-
             }
             channel2.disconnect()
             session.disconnect()
@@ -288,7 +241,7 @@ class ATGCActivity : AppCompatActivity() {
     }
 
     companion object {
-        const val FILE_PICK_REQUEST_CODE = 1
+        private const val FILE_PICK_REQUEST_CODE = 1
     }
 
 }

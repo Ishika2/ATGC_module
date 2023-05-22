@@ -11,6 +11,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.atgc_module.databinding.ActivityHomeScreenBinding
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -26,6 +27,7 @@ class HomeScreenActivity : AppCompatActivity() {
 
     val sshTask2 = sshTask()
 
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -43,12 +45,33 @@ class HomeScreenActivity : AppCompatActivity() {
             startActivity( Intent(this,ATGCActivity::class.java))
         }
 
-        binding.NormalityButton.setOnClickListener {
+        binding.normalityButton.setOnClickListener {
             startActivity( Intent(this,NormalityActivity::class.java))
         }
 
         binding.MolarityButton.setOnClickListener {
             startActivity( Intent(this,MolarityActivity::class.java))
         }
+
+        binding.GCPercentButton.setOnClickListener {
+            startActivity( Intent(this,GC_percentActivity::class.java))
+        }
+
+        binding.DNACuttingButton.setOnClickListener {
+            startActivity( Intent(this,DNA_cuttingActivity::class.java))
+        }
+
+        binding.ReverseComplementButton.setOnClickListener {
+            startActivity( Intent(this,ReverseComplementActivity::class.java))
+        }
+
+        binding.MolalityButton.setOnClickListener {
+            startActivity( Intent(this,MolalityActivity::class.java))
+        }
+
+        binding.DilutionButton.setOnClickListener {
+            startActivity( Intent(this,DilutionActivity::class.java))
+        }
+
     }
 }

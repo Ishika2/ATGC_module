@@ -6,7 +6,7 @@ import android.util.Log
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import com.example.atgc_module.databinding.ActivityMolarityBinding
+import com.example.atgc_module.databinding.ActivityMolalityBinding
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
@@ -18,12 +18,12 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 
-class MolarityActivity : AppCompatActivity() {
+class MolalityActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMolarityBinding
+    private lateinit var binding: ActivityMolalityBinding
 
     var JobId: String = System.currentTimeMillis().toString()
-    val JobName: String = "Molarity"
+    val JobName: String = "Molality"
     val sshTask2 = sshTask()
 
     var host: String? = "111.91.225.19"
@@ -35,32 +35,24 @@ class MolarityActivity : AppCompatActivity() {
     var command1: String? = "sh /home/sciverse/Main.sh $filename $JobName"
     var port: Int? = 22
 
-    val Vol: EditText by lazy { findViewById(R.id.editVolume) }
-    val moles: EditText by lazy { findViewById(R.id.editMoles) }
+    val Solvent: EditText by lazy { findViewById(R.id.editVol1) }
+    val Solute: EditText by lazy { findViewById(R.id.editConc) }
     val MolWt: EditText by lazy { findViewById(R.id.editVol2) }
 
     val result: TextView by lazy { findViewById(R.id.textResult) }
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMolarityBinding.inflate(layoutInflater)
+        binding = ActivityMolalityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.SubmitButton.setOnClickListener {
-//            GlobalScope.launch {
-//                sshTask2.executeSSHCommand(host!!, username!!, password!!, command!!, port!!)
-//            }
-//
-//            val toast =
-//                Toast.makeText(applicationContext, "Connected to the Server", Toast.LENGTH_SHORT)
-//            toast.show()
 
             GlobalScope.launch {
                 TextToFile(
-                    Vol.text.toString(),
-                    moles.text.toString(),
+                    Solvent.text.toString(),
+                    Solute.text.toString(),
                     MolWt.text.toString()
                 )
             }
@@ -76,15 +68,14 @@ class MolarityActivity : AppCompatActivity() {
             toast2.show()
 
         }
-
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    fun TextToFile(Vol: String, moles: String, MolWt: String) {
+    fun TextToFile(Solvent: String, Solute: String, MolWt: String) {
         val file = File(externalCacheDir, JobId)
-        file.writeText(Vol)
+        file.writeText(Solvent)
         file.appendText("\n")
-        file.appendText(moles)
+        file.appendText(Solute)
         file.appendText("\n")
         file.appendText(MolWt)
 
@@ -133,11 +124,12 @@ class MolarityActivity : AppCompatActivity() {
 
             withContext(Dispatchers.Main)
             {
-                result.text = res.getDouble("Molarity").toString()
+                result.text = res.getDouble("Molality").toString()
             }
 
             channel2.disconnect()
             session.disconnect()
         }
     }
+
 }

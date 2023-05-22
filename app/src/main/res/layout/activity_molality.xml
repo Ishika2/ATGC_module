@@ -4,13 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MolarityActivity">
+    tools:context=".MolalityActivity">
 
     <TextView
-        android:id="@+id/textMolarity"
+        android:id="@+id/textDilution"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Molarity Calculator"
+        android:text="Molality Calculator"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -19,42 +19,76 @@
         android:textColor="@color/black" />
 
     <TextView
-        android:id="@+id/textVolume"
+        android:id="@+id/textVol1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Volume:"
+        android:text="Amount of Solvent:"
         android:textColor="@color/black"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginStart="30dp"
-        app:layout_constraintTop_toBottomOf="@id/textMolarity"
-        android:layout_marginTop="40dp"
+        app:layout_constraintTop_toBottomOf="@id/textDilution"
+        android:layout_marginTop="20dp"
         android:textSize="20sp"/>
 
+    <EditText
+        android:id="@+id/editVol1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:ems="8"
+        android:hint="in gm"
+        android:inputType="numberDecimal"
+        app:layout_constraintStart_toEndOf="@id/textVol1"
+        app:layout_constraintTop_toBottomOf="@id/textDilution"
+        android:layout_marginTop="5dp" />
+
     <TextView
-        android:id="@+id/textMoles"
+        android:id="@+id/textConc"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Amount of Solute:"
-        android:hint="in gm"
         android:textColor="@color/black"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginStart="30dp"
-        app:layout_constraintTop_toBottomOf="@id/textVolume"
+        app:layout_constraintTop_toBottomOf="@id/textVol1"
         android:layout_marginTop="20dp"
         android:textSize="20sp"/>
+
+    <EditText
+        android:id="@+id/editConc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:ems="8"
+        android:hint="in gm"
+        android:inputType="numberDecimal"
+        app:layout_constraintStart_toEndOf="@id/textConc"
+        app:layout_constraintTop_toBottomOf="@id/editVol1"
+        android:layout_marginTop="5dp"/>
 
     <TextView
         android:id="@+id/textVol2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Molecular Weight:"
-        android:hint="in gm"
         android:textColor="@color/black"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginStart="30dp"
-        app:layout_constraintTop_toBottomOf="@id/textMoles"
+        app:layout_constraintTop_toBottomOf="@id/textConc"
         android:layout_marginTop="20dp"
         android:textSize="20sp"/>
+
+    <EditText
+        android:id="@+id/editVol2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:ems="8"
+        android:hint="in gm/mole"
+        android:inputType="numberDecimal"
+        app:layout_constraintStart_toEndOf="@id/textVol2"
+        app:layout_constraintTop_toBottomOf="@id/editConc"
+        android:layout_marginTop="5dp" />
 
     <Button
         android:id="@+id/SubmitButton"
@@ -73,13 +107,13 @@
         android:text="________"
         android:textColor="@color/black"
         app:layout_constraintStart_toEndOf="@id/textResult2"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/textResultM"
         android:textSize="30sp"
         app:layout_constraintTop_toBottomOf="@id/SubmitButton"
         android:layout_marginTop="50dp"/>
 
     <TextView
-        android:id="@+id/textResultM2"
+        android:id="@+id/textResultM"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="M"
@@ -102,41 +136,5 @@
         app:layout_constraintEnd_toStartOf="@id/textResult"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/SubmitButton" />
-
-    <EditText
-        android:id="@+id/editVolume"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:ems="10"
-        android:hint="in ml"
-        android:inputType="numberDecimal"
-        app:layout_constraintStart_toEndOf="@id/textVolume"
-        app:layout_constraintTop_toBottomOf="@id/textMolarity"
-        android:layout_marginTop="30dp" />
-
-    <EditText
-        android:id="@+id/editVol2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:ems="8"
-        android:hint="in gm/mole"
-        android:inputType="numberDecimal"
-        app:layout_constraintStart_toEndOf="@id/textVol2"
-        app:layout_constraintTop_toBottomOf="@id/editMoles"
-        android:layout_marginTop="5dp" />
-
-    <EditText
-        android:id="@+id/editMoles"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:ems="8"
-        android:hint="in gm"
-        android:inputType="numberDecimal"
-        app:layout_constraintStart_toEndOf="@id/textMoles"
-        app:layout_constraintTop_toBottomOf="@id/editVolume"
-        android:layout_marginTop="5dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

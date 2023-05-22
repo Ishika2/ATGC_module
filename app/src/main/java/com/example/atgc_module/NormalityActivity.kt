@@ -37,7 +37,7 @@ class NormalityActivity : AppCompatActivity() {
 
     val Vol: EditText by lazy { findViewById(R.id.editVolume) }
     val moles: EditText by lazy { findViewById(R.id.editMoles) }
-    val MolWt: EditText by lazy { findViewById(R.id.editMolecularWt) }
+    val MolWt: EditText by lazy { findViewById(R.id.editVol2) }
     val n_factor: EditText by lazy { findViewById(R.id.editNfactor) }
 
     val result: TextView by lazy { findViewById(R.id.textResult) }
@@ -50,13 +50,13 @@ class NormalityActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.SubmitButton.setOnClickListener {
-            GlobalScope.launch {
-                sshTask2.executeSSHCommand(host!!, username!!, password!!, command!!, port!!)
-            }
-
-            val toast =
-                Toast.makeText(applicationContext, "Connected to the Server", Toast.LENGTH_SHORT)
-            toast.show()
+//            GlobalScope.launch {
+//                sshTask2.executeSSHCommand(host!!, username!!, password!!, command!!, port!!)
+//            }
+//
+//            val toast =
+//                Toast.makeText(applicationContext, "Connected to the Server", Toast.LENGTH_SHORT)
+//            toast.show()
 
             GlobalScope.launch {
                 TextToFile(

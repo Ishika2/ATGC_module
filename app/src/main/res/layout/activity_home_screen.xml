@@ -10,32 +10,80 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="ATGC Calculator"
+        app:layout_constraintBottom_toTopOf="@id/normalityButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="150dp"/>
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/normalityButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Normality Calculator"
+        app:layout_constraintBottom_toTopOf="@id/GC_PercentButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/atgcButton" />
+
+    <Button
+        android:id="@+id/GC_PercentButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="GC Percentage Calculator"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/MolarityButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/normalityButton" />
 
     <Button
         android:id="@+id/MolarityButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="150dp"
         android:text="Molarity Calculator"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-         />
+        app:layout_constraintTop_toBottomOf="@id/GC_PercentButton"
+        app:layout_constraintBottom_toTopOf="@id/DNA_cuttingButton" />
 
     <Button
-        android:id="@+id/NormalityButton"
+        android:id="@+id/DNA_cuttingButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="150dp"
-        android:text="Normality Calculator"
+        android:text="DNA Cutting"
+        app:layout_constraintBottom_toTopOf="@id/ReverseComplementButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/MolarityButton" />
+
+
+    <Button
+        android:id="@+id/ReverseComplementButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reverse Complement"
+        app:layout_constraintBottom_toTopOf="@id/MolalityButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/DNA_cuttingButton" />
+
+    <Button
+        android:id="@+id/MolalityButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Molality Calculator"
+        app:layout_constraintBottom_toTopOf="@id/DilutionButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ReverseComplementButton" />
+
+    <Button
+        android:id="@+id/DilutionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dilution Calculator"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/atgcButton"
-        app:layout_constraintVertical_bias="0.381" />
+        app:layout_constraintTop_toBottomOf="@id/MolalityButton" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
